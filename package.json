@@ -18,7 +18,8 @@
     "locale/*.json",
     "icon.svg",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "tests/**/*.mjs"
   ],
   "engines": {
     "dsh": ">=0.2.1-rc.2 <0.3.0-0"
@@ -37,5 +38,8 @@
   },
   "homepage": "https://github.com/thatgfsj-dsh/dsh-lowmem",
   "bugs": "https://github.com/thatgfsj-dsh/dsh-lowmem/issues",
-  "private": false
+  "private": false,
+  "scripts": {
+    "test": "node --test 'tests/*.test.mjs'"
+  }
 }
