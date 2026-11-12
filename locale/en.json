@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Memory trim",
+    "description": "Inspect process memory, trigger native reclamation (malloc_trim and friends), and tune the trim policy."
+  }
+}

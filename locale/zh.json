@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "内存回收",
+    "description": "查看进程内存占用，触发原生回收（malloc_trim 等），并调整回收策略。"
+  }
+}
