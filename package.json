@@ -14,16 +14,15 @@
   },
   "files": [
     "index.js",
+    "client.js",
     "src/**/*.mjs",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
-    "tests/**/*.mjs",
-    "client.js",
-    "scripts/build-client.mjs",
-    "scripts/**/*.mjs"
+    "scripts/build-client.mjs"
   ],
   "engines": {
     "dsh": ">=0.2.1-rc.2 <0.3.0-0"

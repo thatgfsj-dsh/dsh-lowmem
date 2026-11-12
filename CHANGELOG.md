@@ -2,7 +2,7 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [未发布]
+## [0.1.0] - 2026-11-13
 
 ### 破坏性修复
 
@@ -66,9 +66,7 @@
   （`MALLOC_ARENA_MAX` 不减少碎片、运行时 `mallopt` 改不动 arena 上限、
   `v8.setFlagsFromString` 改不动 heap limit、heap limit 降到 512 MiB 会 abort 宿主）。
 
-## [0.1.0] - 2026-11-12
-
-### 新增
+### 首版能力（本次发布即包含）
 
 - **L1 原生分配器回收**：定时通过 koffi FFI 调用平台原生接口把内存碎片还给操作系统。
   - Linux (glibc)：`malloc_trim(0)`
