@@ -9,7 +9,8 @@
     ".": "./index.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./client": "./client.js"
   },
   "files": [
     "index.js",
@@ -19,7 +20,9 @@
     "icon.svg",
     "README.md",
     "LICENSE",
-    "tests/**/*.mjs"
+    "tests/**/*.mjs",
+    "client.js",
+    "scripts/build-client.mjs"
   ],
   "engines": {
     "dsh": ">=0.2.1-rc.2 <0.3.0-0"
@@ -30,6 +33,13 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
     }
   },
   "repository": {
@@ -40,6 +50,8 @@
   "bugs": "https://github.com/thatgfsj-dsh/dsh-lowmem/issues",
   "private": false,
   "scripts": {
-    "test": "node --test 'tests/*.test.mjs'"
+    "test": "node --test 'tests/*.test.mjs'",
+    "build:client": "node scripts/build-client.mjs",
+    "check:client": "node scripts/build-client.mjs --check"
   }
 }
