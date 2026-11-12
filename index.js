@@ -76,16 +76,29 @@ export function apply(ctx, config) {
     // 采样循环随插件生命周期起停：插件卸载时必须停掉定时器，
     // 否则宿主里会留下一个永不释放的 interval。
     scoped.effect(() => {
-      void controller.start()
+      // start() 内部已经逐段兜底；这里再挂一次 catch，纯粹是防未处理的 rejection
+      // 在宿主里冒出来（没人 await 它）。
+      void controller.start().catch((error) => {
+        ctx.logger?.warn?.(`dsh-lowmem: 采样循环启动失败：${error instanceof Error ? error.message : String(error)}`)
+      })
       return () => controller.stop()
     }, 'lowmem: 采样循环')
   })
 
   // 任何工具活动都算"活跃"：回收要在会话空闲时做，
   // 否则会拖慢正在跑的那一轮。
-  ctx.on('tools/result', () => controller.noteActivity(), { global: true })
+  // 记账失败绝不能影响工具链：waterfall 里的下一环是整条调用路径，
+  // 自己抛错等于把用户的工具调用弄挂。所以两处都兜一层 try/catch。
+  const noteActivity = () => {
+    try {
+      controller.noteActivity()
+    } catch {
+      // 记账只是给回收策略判断"现在忙不忙"用，坏了也不该有任何外部可见影响。
+    }
+  }
+  ctx.on('tools/result', noteActivity, { global: true })
   ctx.on('tools/pre-execute', (_exec, next) => {
-    controller.noteActivity()
+    noteActivity()
     return next()
   }, { global: true })
 }
