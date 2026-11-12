@@ -14,10 +14,9 @@
  *
  * 用法：node scripts/selftest.mjs
  */
-import { spawnSync } from 'node:child_process'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DSH, startTempInstance, waitFor } from './lib/instance.mjs'
+import { startTempInstance, waitFor } from './lib/instance.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -32,13 +31,15 @@ const OUR_IDS = ['ui-trajectory', 'ptc-runtime', 'jobs', 'typert-gateway', 'sess
 
 let instance = null
 try {
-  console.log('复核合成配置…')
-  const dump = spawnSync(DSH, ['--profile', 'web', '--dump-config'], {
-    env: { ...process.env },
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-  })
-  const dumpText = (dump.stdout || '') + (dump.stderr || '')
+  console.log('起临时实例…')
+  instance = await startTempInstance(ROOT)
+  console.log('临时实例：' + instance.base)
+
+  // 配置复核必须在**临时 home** 里做：线上 profile 未必挂载本插件
+  // （dsh plugin add 只写 dependencies，是否挂载看 dsh.profile.bundles）。
+  const dump = instance.dumpConfig()
+  const dumpText = dump.text
+  check('dump-config 成功', dump.status === 0, 'exit=' + dump.status)
   const allMissing = dumpText.match(/patch: entry "[^"]+" not found/g) || []
   const missing = allMissing.filter((line) => OUR_IDS.some((id) => line.includes('"' + id + '"')))
   check('本插件覆盖的行没有 "entry not found"', missing.length === 0, missing.join('; '))
@@ -49,10 +50,6 @@ try {
   check('ui-trajectory 覆盖生效', /maxResultsPerSession: 200/.test(dumpText))
   check('ptc-runtime 覆盖生效', /maxOutputBytes: 8388608/.test(dumpText))
   check('session-projection-cache 覆盖生效', /writeEveryEvents: 50/.test(dumpText))
-
-  console.log('起临时实例…')
-  instance = await startTempInstance(ROOT)
-  console.log('临时实例：' + instance.base)
 
   const stats = await waitFor('stats 接口可用', async () => {
     const result = await instance.call('/api/dsh-lowmem/stats')

@@ -84,5 +84,8 @@ export function apply(ctx, config) {
   // 任何工具活动都算"活跃"：回收要在会话空闲时做，
   // 否则会拖慢正在跑的那一轮。
   ctx.on('tools/result', () => controller.noteActivity(), { global: true })
-  ctx.on('tools/pre-execute', () => controller.noteActivity(), { global: true })
+  ctx.on('tools/pre-execute', (_exec, next) => {
+    controller.noteActivity()
+    return next()
+  }, { global: true })
 }

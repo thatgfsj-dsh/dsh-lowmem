@@ -184,3 +184,17 @@ export function decideTrim(state, config, now) { /* ... */ }
 4. 覆盖官方行时 `config` 整体替换 → 必须重述全部原有键。
 5. 有 `exports` 就必须导出 `./package.json` 与 `./locale/*.json`，否则图标与标题静默丢失。
 6. 单个代码文件 ≤ 1000 行。
+7. **订阅宿主事件前必须先分清 emit 还是 waterfall。**
+   - `emit`（观察者）：返回值被忽略，可以随便返回。
+   - `waterfall`（中间件）：监听器签名是 **`(...事件参数, next)`**，**必须调用并返回 `next()`**。
+     漏掉 `next()` 会否决整条链与内置行为：宿主拿到的 `gate` 变成 `undefined`，
+     随后读 `gate.kind` 抛 `Cannot read properties of undefined (reading 'kind')`，
+     表现为**所有工具调用一起失败**（连 `run_code` 里的纯计算也跑不了），而且
+     报错不指向插件本身，极难定位。
+   - 已知归属：`tools/result` = emit；`tools/pre-execute` / `tools/execute` / `tools/post-execute` = waterfall。
+   - 证据：`dsh-tools/lib/pipeline.js:386,492,673`（waterfall 调用点）、
+     `:585`（`dispatch("emit", ...)`）、
+     `cordis/lib/index.js:904-915`（`Reflect.apply(callback, thisArg, [...args, next])`）。
+   - 守卫：`tests/hooks.test.mjs` 有三重检查——行为断言、**事件分级白名单**
+     （订阅未分级事件直接失败）、waterfall 订阅必须出现 `next(`。新增订阅
+     必须先把事件分类补进 `KNOWN_EVENT_MODES`。

@@ -7,7 +7,7 @@
  * 副本跑在临时 DSH_HOME 里，不碰线上 dsh web 与真实会话。
  */
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdtemp, mkdir, cp, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, cp, readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -51,6 +51,20 @@ export async function startTempInstance(pluginPath) {
   await mkdir(join(home, 'profiles'), { recursive: true })
   await cp(source, join(home, 'profiles', PROFILE), { recursive: true })
 
+  // 关键：先把本插件从副本里摘干净，再 add。
+  // 线上 profile 可能已经把本包装进 dependencies 却没挂进 dsh.profile.bundles
+  // （`dsh plugin add` 见到依赖已存在时会直接 "Already up to date"，不会补 bundles 列表），
+  // 不清掉的话临时实例根本不会挂载本插件，自检就成了空转。
+  const profileManifest = join(home, 'profiles', PROFILE, 'package.json')
+  const manifest = JSON.parse(await readFile(profileManifest, 'utf8'))
+  const packageName = JSON.parse(await readFile(join(pluginPath, 'package.json'), 'utf8')).name
+  if (manifest.dependencies !== undefined) delete manifest.dependencies[packageName]
+  const bundles = manifest.dsh?.profile?.bundles
+  if (Array.isArray(bundles)) {
+    manifest.dsh.profile.bundles = bundles.filter((entry) => entry !== packageName)
+  }
+  await writeFile(profileManifest, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
+
   const install = spawnSync(DSH, ['plugin', '--profile', PROFILE, 'add', pluginPath], {
     env: { ...process.env, DSH_HOME: home },
     encoding: 'utf8',
@@ -85,6 +99,18 @@ export async function startTempInstance(pluginPath) {
     home,
     child,
     output: () => output,
+    /**
+     * 用**临时 home** 复核合成配置（不能用线上 home：线上 profile 可能并未挂载本插件）。
+     * @returns {{text: string, status: number|null}} 合成配置文本与退出码。
+     */
+    dumpConfig() {
+      const dump = spawnSync(DSH, ['--profile', PROFILE, '--dump-config'], {
+        env: { ...process.env, DSH_HOME: home },
+        encoding: 'utf8',
+        maxBuffer: 64 * 1024 * 1024,
+      })
+      return { text: (dump.stdout || '') + (dump.stderr || ''), status: dump.status }
+    },
     /**
      * 调一次接口。
      * @param {string} path - 接口路径。

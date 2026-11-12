@@ -2,6 +2,17 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### 修复
+
+- **`tools/pre-execute` 监听器吞掉整条决策链**：该事件是 waterfall（中间件），
+  监听器不调用 `next()` 就会否决后续所有监听器与内置行为。宿主拿到的 `gate`
+  变成 `undefined`，随后读 `gate.kind` 抛
+  `Cannot read properties of undefined (reading 'kind')`，导致**所有工具调用**
+  （包括 `run_code` 里的纯计算程序）一起失败。现在监听器记录活动后原样返回
+  `next()` 的决策；`tools/result`（emit）语义不变。
+
 ## [0.1.0] - 2026-11-12
 
 ### 新增
