@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Memory trim",
+    "description": "Inspect host process memory, activity and trim stats; report reclaimed bytes per mechanism (released / swapped out / RSS change); tune the native trim policy and allocator start-up advice."
+  }
+}
