@@ -31,6 +31,8 @@
       fieldLabel: { minWidth: '110px', color: 'var(--dsw-alias-label-tertiary)' },
       input: { width: '110px', padding: '5px 8px', borderRadius: '6px', border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-layer-1)', color: 'var(--dsw-alias-label-primary)', fontSize: '12px' },
       unit: { color: 'var(--dsw-alias-label-tertiary)', fontSize: '11px' },
+      // 数字输入框固定宽度：不然它会把右侧的单位（MB / 秒）挤出面板，看不出数值是什么单位。
+      numberInput: { width: '96px', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-layer-2)', color: 'var(--dsw-alias-label-primary)' },
     }
 
     /** 渲染错误兜底：组件抛错时不要把整个 slot 搞白。 */
@@ -246,10 +248,10 @@
             ? h('div', { style: styles.notice }, t('configUnavailable'))
             : h('div', { style: styles.formGrid },
               configField('enabled', t('field.enabled'), h('input', { type: 'checkbox', checked: form.enabled === true, onChange: event => updateField('enabled', event.target.checked === true) })),
-              configField('threshold', t('field.threshold'), h('input', { type: 'number', min: '0', step: '1', value: form.thresholdMb, onChange: event => updateField('thresholdMb', event.target.value) }), t('unit.mb')),
-              configField('hardCap', t('field.hardCap'), h('input', { type: 'number', min: '0', step: '1', value: form.hardCapMb, onChange: event => updateField('hardCapMb', event.target.value) }), t('unit.mb')),
-              configField('minInterval', t('field.minInterval'), h('input', { type: 'number', min: '0', step: '1', value: form.minIntervalSec, onChange: event => updateField('minIntervalSec', event.target.value) }), t('unit.second')),
-              configField('idleInterval', t('field.idleInterval'), h('input', { type: 'number', min: '0', step: '1', value: form.idleIntervalSec, onChange: event => updateField('idleIntervalSec', event.target.value) }), t('unit.second'))),
+              configField('threshold', t('field.threshold'), h('input', { type: 'number', min: '0', step: '1', style: styles.numberInput, value: form.thresholdMb, onChange: event => updateField('thresholdMb', event.target.value) }), t('unit.mb')),
+              configField('hardCap', t('field.hardCap'), h('input', { type: 'number', min: '0', step: '1', style: styles.numberInput, value: form.hardCapMb, onChange: event => updateField('hardCapMb', event.target.value) }), t('unit.mb')),
+              configField('minInterval', t('field.minInterval'), h('input', { type: 'number', min: '0', step: '1', style: styles.numberInput, value: form.minIntervalSec, onChange: event => updateField('minIntervalSec', event.target.value) }), t('unit.second')),
+              configField('idleInterval', t('field.idleInterval'), h('input', { type: 'number', min: '0', step: '1', style: styles.numberInput, value: form.idleIntervalSec, onChange: event => updateField('idleIntervalSec', event.target.value) }), t('unit.second'))),
           h('div', { key: 'configActions', style: { ...styles.row, marginTop: '12px' } },
             h('button', { type: 'button', style: { ...styles.button, ...styles.buttonPrimary }, disabled: saving || !dirty, onClick: () => { void handleSave() } }, saving ? t('button.saving') : t('button.save')),
             dirty ? h('button', { key: 'discard', type: 'button', style: styles.button, onClick: discardChanges }, t('button.discard')) : null,

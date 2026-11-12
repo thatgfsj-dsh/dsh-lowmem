@@ -81,6 +81,8 @@ DSH 跑久了 RSS 会一路涨（实测连续运行 10.7 小时后 1.8–2.7 GiB
 设置页里能看到：当前 RSS / V8 heapUsed / heapTotal / external、原生机制是否可用、
 累计回收次数与总量、上次回收的释放量与耗时，并可手动点"立即回收"。
 
+![设置页的「内存回收」分区](docs/screenshots/01-lowmem-settings.png)
+
 ---
 
 ## 安装
