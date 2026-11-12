@@ -1,0 +1,50 @@
+#
+# dsh-lowmem 的配置层。
+#
+# 只覆盖**顶层行**，且 **config 是整体替换**——少写一个键就会丢掉该行原本显式设过的值，
+# 所以每行都把原有键一并重述。覆盖不存在的 id 会被静默跳过，只有 --dump-config 会打印
+# `patch: entry "x" not found`，升级上游后务必跑一次复核。
+#
+# ⚠️ profile 层最后应用且同名 config 会整块覆盖 bundle 层（dsh-app-boot/lib/index.js:551），
+# 所以用户若在自己 profile 里写过同一行，本文件的覆盖会**静默失效**——文档里已提示。
+#
+# ── 依据 ─────────────────────────────────────────────────────────────
+# 每条覆盖都必须有"实测省内存"的依据，只有"看起来像"的一律不覆盖。
+# 红蓝对抗后撤销了三条（理由见 docs/CONTRACT.md §0）：
+#   · ptc-runtime.maxOutputBytes —— 它是**硬上限**，超限让整次 run_code 失败而非截断；
+#   · session-projection-cache   —— dirty 只存计数器不存事件体，收紧只是提高写盘频率；
+#   · jobs / typert-gateway      —— 值恰等于 schema 默认，纯 no-op。
+#
+# 1) 轨迹面板：按**条数**而不是字节保留每会话的工具结果值，默认 1000 条。
+#    实测该子树在活体宿主里就占 54.68 MiB。调到 200 后仍够回看。
+- id: ui-trajectory
+  config:
+    maxResultsPerSession: 200
+
+# 2) 官方实验性 Inspector：它会劫持 globalThis.fetch，把每个请求/响应体转成 base64
+#    存进进程内的 journal（worker_threads）。默认上限 256 MiB / 2000 条 /
+#    单请求 8 MiB / 单响应 32 MiB，captureFetch 默认就是 true。
+#    这些是**活引用**，malloc_trim 永远收不回来。
+#    这里把 journal 与单条 body 的额度都压到"够排障、不够吃内存"的量级。
+#    证据：dsh-experimental-inspector/lib/index.js:36,1746-1752,2565-2590
+- id: experimental-inspector
+  config:
+    captureFetch: true
+    maxJournalBytes: 67108864
+    maxRetainedRequests: 200
+    maxRequestBodyBytes: 1048576
+    maxResponseBodyBytes: 4194304
+
+# ── 插入宿主半边：原生分配器回收的触发策略 ───────────────────────────
+- insert:
+    - id: dsh-lowmem
+      name: dsh-lowmem
+      config:
+        enabled: true
+        thresholdBytes: 268435456
+        minIntervalMs: 60000
+        idleIntervalMs: 300000
+        hardCapBytes: 3221225472
+        sampleIntervalMs: 15000
+        gcEnabled: false
+        gcMode: minor
