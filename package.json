@@ -14,14 +14,14 @@
   },
   "files": [
     "index.js",
+    "client.js",
     "src/**/*.mjs",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
-    "tests/**/*.mjs",
-    "client.js",
     "scripts/build-client.mjs"
   ],
   "engines": {
@@ -52,6 +52,9 @@
   "scripts": {
     "test": "node --test 'tests/*.test.mjs'",
     "build:client": "node scripts/build-client.mjs",
-    "check:client": "node scripts/build-client.mjs --check"
+    "check:client": "node scripts/build-client.mjs --check",
+    "selfcheck": "node scripts/selftest.mjs",
+    "ui:smoke": "node scripts/ui-smoke.mjs",
+    "wine:smoke": "node scripts/wine-win32-smoke.mjs"
   }
 }
