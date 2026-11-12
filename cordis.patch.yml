@@ -1,0 +1,60 @@
+# dsh-lowmem 的两层配置。
+#
+# 第一层「收紧官方保留上限」：只覆盖**顶层行**，且 **config 是整体替换**——
+# 少写一个键就会丢掉该行原本显式设过的值，所以每行都把原有键一并重述。
+# 覆盖不存在的 id 会被静默跳过，只有 --dump-config 会打印
+# `patch: entry "x" not found`，升级上游后务必跑一次复核。
+#
+# 第二层「插入宿主半边」：id 与 name 都用包名，撞名概率最低。
+
+# 轨迹面板按「条数」而不是「字节」保留每会话的工具结果值：
+# 默认 1000 条，实测在活体宿主里就占 54.68 MiB。调到 200 后仍够回看。
+- id: ui-trajectory
+  config:
+    maxResultsPerSession: 200
+
+# PTC 子进程每个 worker 常驻 64 MiB 的 stderr 缓冲，且跨 run 不清：
+# 这正是本插件把 run_code 的输出做长时最该收的一笔。调到 8 MiB。
+- id: ptc-runtime
+  config:
+    maxOutputBytes: 8388608
+
+# 后台任务记录：settled 之后只按字节裁剪，**条数无界**。
+# 这里把三个键都写出来（与 schema 默认一致），显式声明以免上游改默认时无声漂移。
+- id: jobs
+  config:
+    maxConcurrentJobsPerOwner: 10
+    retainBytes: 262144
+    settledRetainBytes: 16384
+
+# WebSocket / SSE 的上行收件箱上限（下行无上限，属于二期范围）。
+- id: typert-gateway
+  config:
+    streamInboxBytes: 262144
+
+# 投影检查点的写回节流：原来最多每 200 个事件或每 5 秒落盘一次，
+# 内存里的 dirty 状态窗口偏长。收紧到 50 个事件 / 2 秒。
+- id: session-projection-cache
+  config:
+    writeEveryEvents: 50
+    writeIntervalMs: 2000
+
+# spill 上限：保持 12500 不变，但显式写出来防上游漂移
+# （spill 本身只落盘，不占常驻内存）。
+- id: spill-policy
+  config:
+    maxInlineTokens: 12500
+
+# 宿主半边：原生分配器回收的触发策略。
+- insert:
+    - id: dsh-lowmem
+      name: dsh-lowmem
+      config:
+        enabled: true
+        thresholdBytes: 268435456
+        minIntervalMs: 60000
+        idleIntervalMs: 300000
+        hardCapBytes: 3221225472
+        sampleIntervalMs: 15000
+        gcEnabled: false
+        gcMode: minor

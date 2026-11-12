@@ -1,0 +1,44 @@
+{
+  "name": "dsh-lowmem",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "降低 DeepSeek Harness 宿主常驻内存：跨平台原生分配器回收（Linux/macOS/Windows，x86+arm）+ 配置层收紧。",
+  "license": "MIT",
+  "icon": "./icon.svg",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "src/**/*.mjs",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "dsh": ">=0.2.1-rc.2 <0.3.0-0"
+  },
+  "dependencies": {
+    "koffi": "^3.1.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thatgfsj-dsh/dsh-lowmem.git"
+  },
+  "homepage": "https://github.com/thatgfsj-dsh/dsh-lowmem",
+  "bugs": "https://github.com/thatgfsj-dsh/dsh-lowmem/issues",
+  "private": false
+}
