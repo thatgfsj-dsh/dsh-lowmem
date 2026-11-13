@@ -13,53 +13,6 @@ DSH 跑久了 RSS 会一路涨（实测连续运行 10.7 小时后 1.8–2.7 GiB
 
 ---
 
-## ⚠️ 先看这个：更根本的办法在启动环境层
-
-本插件的"定时 trim"是**治症状**。真正的根因是 **glibc 的动态 mmap 阈值**：
-glibc 释放 mmap 块时会动态抬高 `mmap_threshold`（最高 32 MiB），
-于是后续"本该走 mmap 的大块"改为从堆顶切走，在堆里堆出碎片。
-
-**把阈值钉死，碎片就不会形成**：
-
-```bash
-MALLOC_MMAP_THRESHOLD_=131072 dsh --profile web
-```
-
-实测（同一工作负载，5 次重复，方差极小）：
-
-| 指标 | 默认 | `MALLOC_MMAP_THRESHOLD_=131072` | 变化 |
-|---|---|---|---|
-| 峰值 RSS | 726–1097 MiB | **175 MiB** | **-80%** |
-| 可回收碎片 | 543–928 MiB | **8 MiB** | **-98%** |
-| 每次 trim 耗时 | 22–42 ms | **0.7–1.3 ms** | -97% |
-
-也就是说：**开了这个变量之后，本插件的周期 trim 基本无事可做**（只剩 ~8 MiB）。
-
-⚠️ 两个约束：
-
-- 这个变量属 **bootstrap-only** 名，**不能写进 `.env`**（`dsh-app-boot/lib/index.js:4360`、`:4440 isBootstrapOnly`），
-  只能由**启动环境**给（systemd `Environment=` 或 shell export）；
-- 它必须在**进程启动前**生效。运行时用 `mallopt(M_MMAP_THRESHOLD, …)` 只能在
-  "进程几乎没分配过"时才有效（实测 warm=0 时 780→156 MiB；一旦宿主已分配就失效），
-  而插件加载时宿主早已分配过——所以插件自己吃不到这个红利，只能靠启动环境。
-
-本插件会在设置页里检测这个变量并提示。
-
-### 不要用这些
-
-| 手段 | 为什么不用 |
-|---|---|
-| `MALLOC_ARENA_MAX=1` | 9 次重复实测**不减少碎片**（可回收量中位数 682 vs 618 MiB，在噪声内）；线程负载下 RSS 反而更高 |
-| `mallopt(M_ARENA_MAX, …)` 运行时 | glibc 在首次建 arena 时就锁定了上限，运行期改不动（arena 数 10→11 继续涨） |
-| `mallopt(M_TRIM_THRESHOLD, …)` 运行时 | 只治"堆顶空闲"，治不了内部碎片 |
-| `v8.setFlagsFromString('--max-old-space-size=…')` | **改不动** heap limit（实测前后都是 4496293888） |
-| 把 V8 heap limit 降到 512 MiB | OOM 会直接 abort 宿主进程 |
-
-可选（要谨慎）：`NODE_OPTIONS=--max-old-space-size=3072` 能把宿主的上限从 4.19 GiB 压到 3 GiB，
-给 OOM 设一道闸。降限**不会立刻降 RSS**（V8 只在逼近上限时才还页），所以只是保险，不是省内存。
-
----
-
 ## 它做什么
 
 ### L1 · 原生分配器回收
